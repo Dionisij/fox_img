@@ -9,6 +9,7 @@ import Message from './components/Message';
 import Output from './components/Output.jsx';
 import ProgressBar from './components/ProgressBar';
 import SelectedFiles from './components/SelectedFiles';
+import { validateAndFilterSelectedFiles } from './validation/imgValidation';
 
 class App extends Component {
 
@@ -20,23 +21,47 @@ class App extends Component {
         percentage: 0
     }
 
-    // update state on file select 
+    // update state on file select
     fileSelectHandler = event => {
 
         if (event.target.files && event.target.files.length > 1) {
 
-            let files = [];
+            // let files = []; for (let i = 0; i < event.target.files.length; i++) {
+            // files.push(event.target.files[i]); }
 
-            for (let i = 0; i < event.target.files.length; i++) {
-                files.push(event.target.files[i]);
-            }
+            validateAndFilterSelectedFiles(event.target.files).then((res) => {
+                console.log('app res', res);
 
-            this.setState({
-                ...this.state,
-                selectedFiles: files,
-                showOutput: true,
-                image: '',
-                message: ''
+                let files = [];
+                for (let i = 0; i < res.length; i++) {
+                    // filter all unsupported
+                    if (res[i]) {
+                        files.push(res[i]);
+                    }
+
+                }
+
+                if (files && files.length > 1) {
+                    this.setState({
+                        ...this.state,
+                        selectedFiles: files,
+                        showOutput: true,
+                        image: '',
+                        message: ''
+                    });
+                } else {
+                    const message = 'Please select more then 2 images.';
+
+                    this.setState({
+                        ...this.state,
+                        selectedFiles: [],
+                        image: '',
+                        message: message
+                    });
+                }
+
+            }).catch(err => {
+                console.log(err);
             });
 
         } else {
@@ -124,7 +149,7 @@ class App extends Component {
                 image: '',
                 message: ''
             });
-            
+
         } else {
 
             const message = 'Please select more then 2 images.';
@@ -136,17 +161,17 @@ class App extends Component {
                 message: message
             });
         }
-    
+
     }
 
     render() {
-        
+
         // selected files to show
         const outputArr = this.state.selectedFiles.map(file => {
-            return (
-                <Output key={file.name} fileType={file.type} fileSize={file.size}>{file.name}</Output>
-            )
-        });
+                return (
+                    <Output key={file.name} fileType={file.type} fileSize={file.size}>{file.name}</Output>
+                )
+            });
 
         return (
             <div className="App">
@@ -154,10 +179,13 @@ class App extends Component {
 
                 <ProgressBar percentage={this.state.percentage}/>
 
-                <ManualUpload type="file" inputName="files[]" multiple
+                <ManualUpload
+                    type="file"
+                    inputName="files[]"
+                    multiple
                     changeHandler={this.fileSelectHandler.bind(this)}
-                    clickHandler={this.fileUploadHandler.bind(this)} />
-           
+                    clickHandler={this.fileUploadHandler.bind(this)}/>
+
                 <Dropzone
                     className="App-drop"
                     multiple={true}
